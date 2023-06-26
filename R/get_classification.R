@@ -67,7 +67,7 @@ get_classification <- function(taxa, interactive = TRUE) {
   list_sel_taxa$data_resolve <-
     data_taxon_resolve %>%
     dplyr::filter(
-      score == max(score)
+      get("score") == max(get("score"))
     )
 
   # get id (GBIF)
@@ -109,9 +109,12 @@ get_classification <- function(taxa, interactive = TRUE) {
     taxa_mached_name_id_check %>%
     table() %>%
     as.data.frame() %>%
-    dplyr::arrange(-Freq) %>%
-    dplyr::slice(1) %>%
-    dplyr::pull(1) %>%
+    dplyr::arrange(
+      dplyr::desc(
+        dplyr::pick("Freq")
+      )
+    ) %>%
+    purrr::pluck(1, 1) %>%
     as.character()
 
   # save classification
