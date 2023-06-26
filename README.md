@@ -4,6 +4,8 @@
 # taxospace
 
 <!-- badges: start -->
+
+[![R-CMD-check](https://github.com/OndrejMottl/taxospace/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/OndrejMottl/taxospace/actions/workflows/R-CMD-check.yaml)
 <!-- badges: end -->
 
 The goal of taxospace is to …
