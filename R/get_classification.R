@@ -1,3 +1,30 @@
+#' Get classification for a taxonomic name
+#'
+#' This function takes a taxonomic name and returns its classification.
+#' It retrieves the classification from the Global Biodiversity Information
+#' Facility (GBIF) and Integrated Taxonomic Information System (ITIS)
+#' databases. If the name is not found in either database,
+#' an empty list is returned.
+#'
+#' @param taxa A character vector of taxonomic names
+#' @param interactive A logical value indicating whether to ask the user for
+#' input when there is no match found in the GBIF database
+#'
+#' @return A list with the following elements:
+#' \item{sel_name}{The selected taxonomic name}
+#' \item{data_resolve}{A data.frame with information about the resolved name,
+#' including the matched name, data source title, and match score}
+#' \item{db}{The database from which the classification was retrieved
+#' (GBIF or ITIS)}
+#' \item{id}{The most matching ID of the taxonomic name in the database}
+#' \item{classification}{A data.frame with the classification of the taxonomic
+#' name, including the name, rank, and ID}
+#' @examples
+#' get_classification("Homo sapiens")
+#' get_classification(c("Canis lupus", "Felis catus"))
+#' get_classification("Pikachu")
+#'
+#' @export
 get_classification <- function(taxa, interactive = TRUE) {
   # prealocate space
   list_sel_taxa <-
