@@ -1,4 +1,4 @@
-get_classification <- function(taxa, interactive = FALSE) {
+get_classification <- function(taxa, interactive = TRUE) {
   # prealocate space
   list_sel_taxa <-
     list(
@@ -9,14 +9,16 @@ get_classification <- function(taxa, interactive = FALSE) {
         matched_name = NA_character_,
         data_source_title = NA_character_,
         score = NA_real_
-      ),
+      ) %>%
+        tidyr::drop_na(),
       db = "gbif",
       id = NA_character_,
       classification = data.frame(
         name = NA_character_,
         rank = NA_character_,
         id = NA_character_
-      )
+      ) %>%
+        tidyr::drop_na()
     )
 
   # add taxa mname
@@ -28,6 +30,12 @@ get_classification <- function(taxa, interactive = FALSE) {
     taxize::resolve(list_sel_taxa$sel_name) %>%
     purrr::pluck(1)
 
+  if (
+    all(is.na(data_taxon_resolve))
+  ) {
+    return(list_sel_taxa)
+  }
+
   # save the best match
   list_sel_taxa$data_resolve <-
     data_taxon_resolve %>%
@@ -36,33 +44,35 @@ get_classification <- function(taxa, interactive = FALSE) {
     )
 
   # get id (GBIF)
-  taxa_mached_name_id_check <-
-    taxize::get_gbifid(
-      sci = list_sel_taxa$data_resolve$matched_name,
-      messages = FALSE,
-      ask = interactive
-    )
+  suppressWarnings(
+    taxa_mached_name_id_check <-
+      taxize::get_gbifid(
+        sci = list_sel_taxa$data_resolve$matched_name,
+        messages = FALSE,
+        ask = interactive
+      )
+  )
 
   # If there is nothing in GBIF, try ITIS
   if (
     all(is.na(taxa_mached_name_id_check))
   ) {
-    taxa_mached_name_id_check <-
+    list_sel_taxa$db <- "itis"
+
+    suppressWarnings(taxa_mached_name_id_check <-
       taxize::get_tsn(
         sci = list_sel_taxa$data_resolve$matched_name,
         messages = FALSE,
         ask = interactive,
         accepted = FALSE
-      )
-
-    list_sel_taxa$db <- "itis"
+      ))
   }
 
   # If there is nothing in ITIS, try return empty
   if (
     all(is.na(taxa_mached_name_id_check))
   ) {
-    message("data does not find")
+    base::message("data does not find")
 
     return(list_sel_taxa)
   }
