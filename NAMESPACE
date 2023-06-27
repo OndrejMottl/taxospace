@@ -2,6 +2,7 @@
 
 export("%>%")
 export(get_classification)
+export(get_classification_buk)
 importFrom(lifecycle,deprecated)
 importFrom(magrittr,"%>%")
 importFrom(tibble,tibble)
