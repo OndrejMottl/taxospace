@@ -31,18 +31,23 @@ get_classification_buk <- function(taxa_vec, sel_db = c("gbif", "itis")) {
     return(data_taxa_res)
   }
 
+  # select the resolve with heighest score
+  data_resolve_best <-
+    data_resolve %>%
+    dplyr::group_by(
+      dplyr::across("user_supplied_name")
+    ) %>%
+    # get the best match
+    dplyr::filter(
+      get("score") == max(get("score"))
+    ) %>%
+    dplyr::ungroup()
+
+  # nest ataxa with their resolve
   data_taxa_res <-
     dplyr::left_join(
       data_taxa_res,
-      data_resolve %>%
-        dplyr::group_by(
-          dplyr::across("user_supplied_name")
-        ) %>%
-        # get the best match
-        dplyr::filter(
-          get("score") == max(get("score"))
-        ) %>%
-        dplyr::ungroup(),
+      data_resolve_best,
       by = dplyr::join_by("sel_name" == "user_supplied_name")
     ) %>%
     tidyr::nest(
@@ -55,12 +60,18 @@ get_classification_buk <- function(taxa_vec, sel_db = c("gbif", "itis")) {
     return(data_taxa_res)
   }
 
+  # get vector of unique resolved names
+  data_resolve_unique <-
+    data_taxa_res %>%
+    tidyr::unnest(data_resolve) %>%
+    dplyr::distinct(matched_name) %>%
+    tidyr::drop_na(matched_name) %>%
+    purrr::chuck("matched_name")
+
   # get id
   suppressWarnings(
     taxa_mached_name_id_check <-
-      data_taxa_res %>%
-      tidyr::unnest(data_resolve) %>%
-      purrr::chuck("matched_name") %>%
+      data_resolve_unique %>%
       taxize::get_gbifid(
         messages = FALSE,
         ask = FALSE
@@ -78,11 +89,17 @@ get_classification_buk <- function(taxa_vec, sel_db = c("gbif", "itis")) {
 
   # get the most matching ID
   data_id <-
-    dplyr::bind_cols(
-      "sel_name" = data_taxa_res %>%
-        tidyr::unnest(data_resolve) %>%
-        purrr::chuck("sel_name"),
-      "id" = taxa_mached_name_id_check
+    data_taxa_res %>%
+    tidyr::unnest(data_resolve) %>%
+    dplyr::select(sel_name, matched_name) %>%
+    dplyr::distinct() %>%
+    dplyr::left_join(
+      .,
+      dplyr::bind_cols(
+        "matched_name" = data_resolve_unique,
+        "id" = taxa_mached_name_id_check
+      ),
+      by = "matched_name"
     ) %>%
     dplyr::group_by(
       dplyr::across(
@@ -126,24 +143,34 @@ get_classification_buk <- function(taxa_vec, sel_db = c("gbif", "itis")) {
       db = sel_db
     )
 
+  names(data_classification) <-
+    ifelse(is.na(data_taxa_res$id), "NA", data_taxa_res$id)
+
+  data_classification_res <-
+    data_classification %>%
+    purrr::map(
+      .f = ~ as.data.frame(.x)
+    ) %>%
+    dplyr::bind_rows(
+      .id = "taxon_id"
+    ) %>%
+    dplyr::select(
+      -dplyr::any_of(".x")
+    ) %>%
+    tidyr::drop_na() %>%
+    dplyr::group_by(
+      dplyr::across("taxon_id")
+    ) %>%
+    tidyr::nest(
+      classification = c("name", "rank", "id")
+    ) %>%
+    dplyr::ungroup()
+
   # process the classification
   data_taxa_res <-
     dplyr::left_join(
-      data_taxa_res,
-      data_classification %>%
-        purrr::map(
-          .f = ~ as.data.frame(.x)
-        ) %>%
-        dplyr::bind_rows(
-          .id = "taxon_id"
-        ) %>%
-        dplyr::group_by(
-          dplyr::across("taxon_id")
-        ) %>%
-        tidyr::nest(
-          classification = c("name", "rank", "id")
-        ) %>%
-        dplyr::ungroup(),
+      data_taxa_res, 
+      data_classification_res,
       by = dplyr::join_by("id" == "taxon_id")
     )
 
