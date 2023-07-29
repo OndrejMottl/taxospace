@@ -4,7 +4,7 @@
 \alias{get_classification_buk}
 \title{Get classification for given vector of taxa}
 \usage{
-get_classification_buk(taxa_vec, sel_db = c("gbif", "itis"))
+get_classification_buk(taxa_vec, sel_db = c("gbif", "itis"), verbose = FALSE)
 }
 \arguments{
 \item{taxa_vec}{A character vector of taxa names to classify.}
