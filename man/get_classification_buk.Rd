@@ -10,6 +10,8 @@ get_classification_buk(taxa_vec, sel_db = c("gbif", "itis"), verbose = FALSE)
 \item{taxa_vec}{A character vector of taxa names to classify.}
 
 \item{sel_db}{A string indicating which database to use. Default is "gbif".}
+
+\item{verbose}{Logical. If TRUE the additional messages are printed on the console.}
 }
 \value{
 A data frame with classification information for each taxa name.

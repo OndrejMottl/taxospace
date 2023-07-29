@@ -6,7 +6,8 @@
 #' parameter.
 #' @param taxa_vec A character vector of taxa names to classify.
 #' @param sel_db A string indicating which database to use. Default is "gbif".
-#'
+#' @param verbose
+#' Logical. If TRUE the additional messages are printed on the console.
 #' @return A data frame with classification information for each taxa name.
 #' @export
 #' @examples
