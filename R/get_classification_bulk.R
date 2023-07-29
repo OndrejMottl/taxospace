@@ -11,7 +11,7 @@
 #' @export
 #' @examples
 #' get_classification_buk(c("Homo sapiens", "Panthera tigris"))
-get_classification_buk <- function(taxa_vec, sel_db = c("gbif", "itis")) {
+get_classification_buk <- function(taxa_vec, sel_db = c("gbif", "itis"), verbose = FALSE) {
   sel_db <- match.arg(sel_db)
 
   # prealocate space
@@ -72,9 +72,8 @@ get_classification_buk <- function(taxa_vec, sel_db = c("gbif", "itis")) {
   suppressWarnings(
     taxa_mached_name_id_check <-
       data_resolve_unique %>%
-      taxize::get_gbifid(
-        messages = FALSE,
-        ask = FALSE
+      taxize::get_gbifid_(
+        messages = verbose
       )
   )
 
@@ -87,6 +86,22 @@ get_classification_buk <- function(taxa_vec, sel_db = c("gbif", "itis")) {
     return(data_taxa_res)
   }
 
+  # turn it into a data frame
+  data_taxa_mached_name_id_full <-
+    taxa_mached_name_id_check %>%
+    purrr::map(
+      .f = ~ dplyr::slice(.x, 1)
+    ) %>%
+    dplyr::bind_rows(
+      .id = "matched_name"
+    )
+
+  data_taxa_mached_name_id <-
+    data_taxa_mached_name_id_full %>%
+    dplyr::select(
+      matched_name,
+      id = usagekey)
+
   # get the most matching ID
   data_id <-
     data_taxa_res %>%
@@ -95,10 +110,7 @@ get_classification_buk <- function(taxa_vec, sel_db = c("gbif", "itis")) {
     dplyr::distinct() %>%
     dplyr::left_join(
       .,
-      dplyr::bind_cols(
-        "matched_name" = data_resolve_unique,
-        "id" = taxa_mached_name_id_check
-      ),
+      data_taxa_mached_name_id,
       by = "matched_name"
     ) %>%
     dplyr::group_by(
@@ -169,7 +181,7 @@ get_classification_buk <- function(taxa_vec, sel_db = c("gbif", "itis")) {
   # process the classification
   data_taxa_res <-
     dplyr::left_join(
-      data_taxa_res, 
+      data_taxa_res,
       data_classification_res,
       by = dplyr::join_by("id" == "taxon_id")
     )
