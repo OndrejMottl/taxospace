@@ -101,6 +101,15 @@ get_classification <- function(taxon, interactive = TRUE, verbose = FALSE) {
       )
     }
 
+    # If there is nothing, return empty
+    if (
+      all(is.na(taxon_mached_name_id_check))
+    ) {
+      base::message("data does not find")
+
+      return(list_sel_taxon)
+    }
+
     data_taxon_mached_name_id <-
       data.frame(
         matched_name = list_sel_taxon$data_resolve$matched_name,
@@ -126,12 +135,14 @@ get_classification <- function(taxon, interactive = TRUE, verbose = FALSE) {
     ) {
       list_sel_taxon$db <- "itis"
 
-      suppressWarnings(taxon_mached_name_id_check <-
-        taxize::get_tsn_(
-          sci = list_sel_taxon$data_resolve$matched_name,
-          messages = verbose,
-          accepted = FALSE
-        ))
+      suppressWarnings(
+        taxon_mached_name_id_check <-
+          taxize::get_tsn_(
+            sci = list_sel_taxon$data_resolve$matched_name,
+            messages = verbose,
+            accepted = FALSE
+          )
+      )
     }
 
     # If there is nothing, return empty
