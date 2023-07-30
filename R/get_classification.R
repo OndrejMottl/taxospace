@@ -8,8 +8,9 @@
 #'
 #' @param taxa A character vector of taxonomic names
 #' @param interactive A logical value indicating whether to ask the user for
-#' input when there is no match found in the GBIF database
-#'
+#' input or automaticaly pick the best match found in the database
+#' @param verbose Logical. If TRUE the additional messages are printed on
+#' the console
 #' @return A list with the following elements:
 #' \item{sel_name}{The selected taxonomic name}
 #' \item{data_resolve}{A data.frame with information about the resolved name,
@@ -25,7 +26,7 @@
 #' get_classification("Pikachu")
 #'
 #' @export
-get_classification <- function(taxa, interactive = TRUE) {
+get_classification <- function(taxa, interactive = TRUE, verbose = FALSE) {
   # prealocate space
   list_sel_taxa <-
     list(
@@ -48,7 +49,7 @@ get_classification <- function(taxa, interactive = TRUE) {
         tidyr::drop_na()
     )
 
-  # add taxa mname
+  # add taxa name
   list_sel_taxa$sel_name <-
     taxa
 
@@ -70,50 +71,121 @@ get_classification <- function(taxa, interactive = TRUE) {
       get("score") == max(get("score"))
     )
 
-  # get id (GBIF)
-  suppressWarnings(
-    taxa_mached_name_id_check <-
-      taxize::get_gbifid(
-        sci = list_sel_taxa$data_resolve$matched_name,
-        messages = FALSE,
-        ask = interactive
+  if (
+    isTRUE(interactive)
+  ) {
+    # get id (GBIF)
+    suppressWarnings(
+      taxa_mached_name_id_check <-
+        taxize::get_gbifid(
+          sci = list_sel_taxa$data_resolve$matched_name,
+          messages = verbose,
+          ask = TRUE
+        )
+    )
+
+    # If there is nothing in GBIF, try ITIS
+    if (
+      all(is.na(taxa_mached_name_id_check))
+    ) {
+      list_sel_taxa$db <- "itis"
+
+      suppressWarnings(
+        taxa_mached_name_id_check <-
+          taxize::get_tsn(
+            sci = list_sel_taxa$data_resolve$matched_name,
+            messages = verbose,
+            ask = TRUE,
+            accepted = FALSE
+          )
       )
-  )
+    }
 
-  # If there is nothing in GBIF, try ITIS
-  if (
-    all(is.na(taxa_mached_name_id_check))
-  ) {
-    list_sel_taxa$db <- "itis"
+    data_taxa_mached_name_id <-
+      data.frame(
+        matched_name = list_sel_taxa$data_resolve$matched_name,
+        id = as.character(taxa_mached_name_id_check)
+      )
+  } else {
+    # get id (GBIF)
+    suppressWarnings(
+      taxa_mached_name_id_check <-
+        taxize::get_gbifid_(
+          sci = list_sel_taxa$data_resolve$matched_name,
+          messages = verbose
+        )
+    )
 
-    suppressWarnings(taxa_mached_name_id_check <-
-      taxize::get_tsn(
-        sci = list_sel_taxa$data_resolve$matched_name,
-        messages = FALSE,
-        ask = interactive,
-        accepted = FALSE
-      ))
-  }
+    # If there is nothing in GBIF, try ITIS
+    if (
+      purrr::map_lgl(
+        .x = taxa_mached_name_id_check,
+        .f = ~ nrow(.x) == 0
+      ) %>%
+        all()
+    ) {
+      list_sel_taxa$db <- "itis"
 
-  # If there is nothing in ITIS, try return empty
-  if (
-    all(is.na(taxa_mached_name_id_check))
-  ) {
-    base::message("data does not find")
+      suppressWarnings(taxa_mached_name_id_check <-
+        taxize::get_tsn_(
+          sci = list_sel_taxa$data_resolve$matched_name,
+          messages = verbose,
+          accepted = FALSE
+        ))
+    }
 
-    return(list_sel_taxa)
+    # If there is nothing, return empty
+    if (
+      purrr::map_lgl(
+        .x = taxa_mached_name_id_check,
+        .f = ~ nrow(.x) == 0
+      ) %>%
+        all()
+    ) {
+      base::message("data does not find")
+
+      return(list_sel_taxa)
+    }
+
+    # turn it into a data frame
+    data_taxa_mached_name_id_full <-
+      taxa_mached_name_id_check %>%
+      purrr::map(
+        .f = ~ dplyr::slice(.x, 1)
+      ) %>%
+      dplyr::bind_rows(
+        .id = "matched_name"
+      )
+
+    data_taxa_mached_name_id <-
+      data_taxa_mached_name_id_full %>%
+      dplyr::select(
+        matched_name,
+        id = usagekey
+      )
   }
 
   # save the most matching ID
   list_sel_taxa$id <-
-    taxa_mached_name_id_check %>%
-    table() %>%
-    as.data.frame() %>%
+    data_taxa_mached_name_id %>%
+    dplyr::group_by(id) %>%
+    dplyr::summarise(
+      .groups = "drop",
+      Freq = dplyr::n()
+    ) %>%
+    tidyr::drop_na() %>%
     dplyr::arrange(
       dplyr::desc(
         dplyr::pick("Freq")
       )
     ) %>%
+    dplyr::filter(
+      get("Freq") == max(get("Freq"))
+    ) %>%
+    dplyr::mutate(
+      "id" = as.character(get("id"))
+    ) %>%
+    dplyr::ungroup() %>%
     purrr::pluck(1, 1) %>%
     as.character()
 
