@@ -6,7 +6,7 @@
 #' databases. If the name is not found in either database,
 #' an empty list is returned.
 #'
-#' @param taxa A character vector of taxonomic names
+#' @param taxon A character with a taxonomic name
 #' @param interactive A logical value indicating whether to ask the user for
 #' input or automaticaly pick the best match found in the database
 #' @param verbose Logical. If TRUE the additional messages are printed on
@@ -26,9 +26,9 @@
 #' get_classification("Pikachu")
 #'
 #' @export
-get_classification <- function(taxa, interactive = TRUE, verbose = FALSE) {
+get_classification <- function(taxon, interactive = TRUE, verbose = FALSE) {
   # prealocate space
-  list_sel_taxa <-
+  list_sel_taxon <-
     list(
       sel_name = NA_character_,
       data_resolve = data.frame(
@@ -49,23 +49,23 @@ get_classification <- function(taxa, interactive = TRUE, verbose = FALSE) {
         tidyr::drop_na()
     )
 
-  # add taxa name
-  list_sel_taxa$sel_name <-
-    taxa
+  # add taxon name
+  list_sel_taxon$sel_name <-
+    taxon
 
-  # resolve taxa
+  # resolve taxon
   data_taxon_resolve <-
-    taxize::resolve(list_sel_taxa$sel_name) %>%
+    taxize::resolve(list_sel_taxon$sel_name) %>%
     purrr::pluck(1)
 
   if (
     all(is.na(data_taxon_resolve))
   ) {
-    return(list_sel_taxa)
+    return(list_sel_taxon)
   }
 
   # save the best match
-  list_sel_taxa$data_resolve <-
+  list_sel_taxon$data_resolve <-
     data_taxon_resolve %>%
     dplyr::filter(
       get("score") == max(get("score"))
@@ -76,9 +76,9 @@ get_classification <- function(taxa, interactive = TRUE, verbose = FALSE) {
   ) {
     # get id (GBIF)
     suppressWarnings(
-      taxa_mached_name_id_check <-
+      taxon_mached_name_id_check <-
         taxize::get_gbifid(
-          sci = list_sel_taxa$data_resolve$matched_name,
+          sci = list_sel_taxon$data_resolve$matched_name,
           messages = verbose,
           ask = TRUE
         )
@@ -86,14 +86,14 @@ get_classification <- function(taxa, interactive = TRUE, verbose = FALSE) {
 
     # If there is nothing in GBIF, try ITIS
     if (
-      all(is.na(taxa_mached_name_id_check))
+      all(is.na(taxon_mached_name_id_check))
     ) {
-      list_sel_taxa$db <- "itis"
+      list_sel_taxon$db <- "itis"
 
       suppressWarnings(
-        taxa_mached_name_id_check <-
+        taxon_mached_name_id_check <-
           taxize::get_tsn(
-            sci = list_sel_taxa$data_resolve$matched_name,
+            sci = list_sel_taxon$data_resolve$matched_name,
             messages = verbose,
             ask = TRUE,
             accepted = FALSE
@@ -101,17 +101,17 @@ get_classification <- function(taxa, interactive = TRUE, verbose = FALSE) {
       )
     }
 
-    data_taxa_mached_name_id <-
+    data_taxon_mached_name_id <-
       data.frame(
-        matched_name = list_sel_taxa$data_resolve$matched_name,
-        id = as.character(taxa_mached_name_id_check)
+        matched_name = list_sel_taxon$data_resolve$matched_name,
+        id = as.character(taxon_mached_name_id_check)
       )
   } else {
     # get id (GBIF)
     suppressWarnings(
-      taxa_mached_name_id_check <-
+      taxon_mached_name_id_check <-
         taxize::get_gbifid_(
-          sci = list_sel_taxa$data_resolve$matched_name,
+          sci = list_sel_taxon$data_resolve$matched_name,
           messages = verbose
         )
     )
@@ -119,16 +119,16 @@ get_classification <- function(taxa, interactive = TRUE, verbose = FALSE) {
     # If there is nothing in GBIF, try ITIS
     if (
       purrr::map_lgl(
-        .x = taxa_mached_name_id_check,
+        .x = taxon_mached_name_id_check,
         .f = ~ nrow(.x) == 0
       ) %>%
         all()
     ) {
-      list_sel_taxa$db <- "itis"
+      list_sel_taxon$db <- "itis"
 
-      suppressWarnings(taxa_mached_name_id_check <-
+      suppressWarnings(taxon_mached_name_id_check <-
         taxize::get_tsn_(
-          sci = list_sel_taxa$data_resolve$matched_name,
+          sci = list_sel_taxon$data_resolve$matched_name,
           messages = verbose,
           accepted = FALSE
         ))
@@ -137,19 +137,19 @@ get_classification <- function(taxa, interactive = TRUE, verbose = FALSE) {
     # If there is nothing, return empty
     if (
       purrr::map_lgl(
-        .x = taxa_mached_name_id_check,
+        .x = taxon_mached_name_id_check,
         .f = ~ nrow(.x) == 0
       ) %>%
         all()
     ) {
       base::message("data does not find")
 
-      return(list_sel_taxa)
+      return(list_sel_taxon)
     }
 
     # turn it into a data frame
-    data_taxa_mached_name_id_full <-
-      taxa_mached_name_id_check %>%
+    data_taxon_mached_name_id_full <-
+      taxon_mached_name_id_check %>%
       purrr::map(
         .f = ~ dplyr::slice(.x, 1)
       ) %>%
@@ -157,8 +157,8 @@ get_classification <- function(taxa, interactive = TRUE, verbose = FALSE) {
         .id = "matched_name"
       )
 
-    data_taxa_mached_name_id <-
-      data_taxa_mached_name_id_full %>%
+    data_taxon_mached_name_id <-
+      data_taxon_mached_name_id_full %>%
       dplyr::select(
         matched_name,
         id = usagekey
@@ -166,8 +166,8 @@ get_classification <- function(taxa, interactive = TRUE, verbose = FALSE) {
   }
 
   # save the most matching ID
-  list_sel_taxa$id <-
-    data_taxa_mached_name_id %>%
+  list_sel_taxon$id <-
+    data_taxon_mached_name_id %>%
     dplyr::group_by(id) %>%
     dplyr::summarise(
       .groups = "drop",
@@ -190,10 +190,10 @@ get_classification <- function(taxa, interactive = TRUE, verbose = FALSE) {
     as.character()
 
   # save classification
-  list_sel_taxa$classification <-
+  list_sel_taxon$classification <-
     taxize::classification(
-      sci_id = list_sel_taxa$id,
-      db = list_sel_taxa$db
+      sci_id = list_sel_taxon$id,
+      db = list_sel_taxon$db
     ) %>%
     purrr::pluck(1) %>%
     dplyr::mutate(
@@ -204,5 +204,5 @@ get_classification <- function(taxa, interactive = TRUE, verbose = FALSE) {
     )
 
 
-  return(list_sel_taxa)
+  return(list_sel_taxon)
 }
