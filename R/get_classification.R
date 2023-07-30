@@ -6,10 +6,11 @@
 #' databases. If the name is not found in either database,
 #' an empty list is returned.
 #'
-#' @param taxa A character vector of taxonomic names
+#' @param taxon A character with a taxonomic name
 #' @param interactive A logical value indicating whether to ask the user for
-#' input when there is no match found in the GBIF database
-#'
+#' input or automaticaly pick the best match found in the database
+#' @param verbose Logical. If TRUE the additional messages are printed on
+#' the console
 #' @return A list with the following elements:
 #' \item{sel_name}{The selected taxonomic name}
 #' \item{data_resolve}{A data.frame with information about the resolved name,
@@ -25,9 +26,9 @@
 #' get_classification("Pikachu")
 #'
 #' @export
-get_classification <- function(taxa, interactive = TRUE) {
+get_classification <- function(taxon, interactive = TRUE, verbose = FALSE) {
   # prealocate space
-  list_sel_taxa <-
+  list_sel_taxon <-
     list(
       sel_name = NA_character_,
       data_resolve = data.frame(
@@ -48,80 +49,162 @@ get_classification <- function(taxa, interactive = TRUE) {
         tidyr::drop_na()
     )
 
-  # add taxa mname
-  list_sel_taxa$sel_name <-
-    taxa
+  # add taxon name
+  list_sel_taxon$sel_name <-
+    taxon
 
-  # resolve taxa
+  # resolve taxon
   data_taxon_resolve <-
-    taxize::resolve(list_sel_taxa$sel_name) %>%
+    taxize::resolve(list_sel_taxon$sel_name) %>%
     purrr::pluck(1)
 
   if (
     all(is.na(data_taxon_resolve))
   ) {
-    return(list_sel_taxa)
+    return(list_sel_taxon)
   }
 
   # save the best match
-  list_sel_taxa$data_resolve <-
+  list_sel_taxon$data_resolve <-
     data_taxon_resolve %>%
     dplyr::filter(
       get("score") == max(get("score"))
     )
 
-  # get id (GBIF)
-  suppressWarnings(
-    taxa_mached_name_id_check <-
-      taxize::get_gbifid(
-        sci = list_sel_taxa$data_resolve$matched_name,
-        messages = FALSE,
-        ask = interactive
+  if (
+    isTRUE(interactive)
+  ) {
+    # get id (GBIF)
+    suppressWarnings(
+      taxon_mached_name_id_check <-
+        taxize::get_gbifid(
+          sci = list_sel_taxon$data_resolve$matched_name,
+          messages = verbose,
+          ask = TRUE
+        )
+    )
+
+    # If there is nothing in GBIF, try ITIS
+    if (
+      all(is.na(taxon_mached_name_id_check))
+    ) {
+      list_sel_taxon$db <- "itis"
+
+      suppressWarnings(
+        taxon_mached_name_id_check <-
+          taxize::get_tsn(
+            sci = list_sel_taxon$data_resolve$matched_name,
+            messages = verbose,
+            ask = TRUE,
+            accepted = FALSE
+          )
       )
-  )
+    }
 
-  # If there is nothing in GBIF, try ITIS
-  if (
-    all(is.na(taxa_mached_name_id_check))
-  ) {
-    list_sel_taxa$db <- "itis"
+    # If there is nothing, return empty
+    if (
+      all(is.na(taxon_mached_name_id_check))
+    ) {
+      base::message("data does not find")
 
-    suppressWarnings(taxa_mached_name_id_check <-
-      taxize::get_tsn(
-        sci = list_sel_taxa$data_resolve$matched_name,
-        messages = FALSE,
-        ask = interactive,
-        accepted = FALSE
-      ))
-  }
+      return(list_sel_taxon)
+    }
 
-  # If there is nothing in ITIS, try return empty
-  if (
-    all(is.na(taxa_mached_name_id_check))
-  ) {
-    base::message("data does not find")
+    data_taxon_mached_name_id <-
+      data.frame(
+        matched_name = list_sel_taxon$data_resolve$matched_name,
+        id = as.character(taxon_mached_name_id_check)
+      )
+  } else {
+    # get id (GBIF)
+    suppressWarnings(
+      taxon_mached_name_id_check <-
+        taxize::get_gbifid_(
+          sci = list_sel_taxon$data_resolve$matched_name,
+          messages = verbose
+        )
+    )
 
-    return(list_sel_taxa)
+    # If there is nothing in GBIF, try ITIS
+    if (
+      purrr::map_lgl(
+        .x = taxon_mached_name_id_check,
+        .f = ~ nrow(.x) == 0
+      ) %>%
+        all()
+    ) {
+      list_sel_taxon$db <- "itis"
+
+      suppressWarnings(
+        taxon_mached_name_id_check <-
+          taxize::get_tsn_(
+            sci = list_sel_taxon$data_resolve$matched_name,
+            messages = verbose,
+            accepted = FALSE
+          )
+      )
+    }
+
+    # If there is nothing, return empty
+    if (
+      purrr::map_lgl(
+        .x = taxon_mached_name_id_check,
+        .f = ~ nrow(.x) == 0
+      ) %>%
+        all()
+    ) {
+      base::message("data does not find")
+
+      return(list_sel_taxon)
+    }
+
+    # turn it into a data frame
+    data_taxon_mached_name_id_full <-
+      taxon_mached_name_id_check %>%
+      purrr::map(
+        .f = ~ dplyr::slice(.x, 1)
+      ) %>%
+      dplyr::bind_rows(
+        .id = "matched_name"
+      )
+
+    data_taxon_mached_name_id <-
+      data_taxon_mached_name_id_full %>%
+      dplyr::select(
+        matched_name,
+        id = usagekey
+      )
   }
 
   # save the most matching ID
-  list_sel_taxa$id <-
-    taxa_mached_name_id_check %>%
-    table() %>%
-    as.data.frame() %>%
+  list_sel_taxon$id <-
+    data_taxon_mached_name_id %>%
+    dplyr::group_by(id) %>%
+    dplyr::summarise(
+      .groups = "drop",
+      Freq = dplyr::n()
+    ) %>%
+    tidyr::drop_na() %>%
     dplyr::arrange(
       dplyr::desc(
         dplyr::pick("Freq")
       )
     ) %>%
+    dplyr::filter(
+      get("Freq") == max(get("Freq"))
+    ) %>%
+    dplyr::mutate(
+      "id" = as.character(get("id"))
+    ) %>%
+    dplyr::ungroup() %>%
     purrr::pluck(1, 1) %>%
     as.character()
 
   # save classification
-  list_sel_taxa$classification <-
+  list_sel_taxon$classification <-
     taxize::classification(
-      sci_id = list_sel_taxa$id,
-      db = list_sel_taxa$db
+      sci_id = list_sel_taxon$id,
+      db = list_sel_taxon$db
     ) %>%
     purrr::pluck(1) %>%
     dplyr::mutate(
@@ -132,5 +215,5 @@ get_classification <- function(taxa, interactive = TRUE) {
     )
 
 
-  return(list_sel_taxa)
+  return(list_sel_taxon)
 }

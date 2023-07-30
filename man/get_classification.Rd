@@ -4,13 +4,16 @@
 \alias{get_classification}
 \title{Get classification for a taxonomic name}
 \usage{
-get_classification(taxa, interactive = TRUE)
+get_classification(taxon, interactive = TRUE, verbose = FALSE)
 }
 \arguments{
-\item{taxa}{A character vector of taxonomic names}
+\item{taxon}{A character with a taxonomic name}
 
 \item{interactive}{A logical value indicating whether to ask the user for
-input when there is no match found in the GBIF database}
+input or automaticaly pick the best match found in the database}
+
+\item{verbose}{Logical. If TRUE the additional messages are printed on
+the console}
 }
 \value{
 A list with the following elements:
