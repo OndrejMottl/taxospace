@@ -13,9 +13,16 @@ testthat::test_that("get_classification returns the correct classification", {
   testthat::expect_true(nrow(result2$classification) > 0)
   testthat::expect_equal(nrow(result2$classification), 6)
 
-  # Test case 3: Test with a nonexistent taxonomic name
-  result3 <- get_classification("Pikachu", interactive = FALSE)
-  testthat::expect_true(nrow(result3$data_resolve) == 0)
-  testthat::expect_true(nrow(result3$classification) == 0)
-  testthat::expect_identical(result3$id, NA_character_)
+  # Test case 3: Test with a partial species name
+  result3 <- get_classification("Felis Catus", interactive = FALSE)
+  testthat::expect_equal(result3$db, "gbif")
+  testthat::expect_equal(result3$id, "2435022")
+  testthat::expect_true(nrow(result3$classification) > 0)
+  testthat::expect_equal(nrow(result3$classification), 6)
+
+  # Test case 4: Test with a nonexistent taxonomic name
+  result4 <- get_classification("Pikachu", interactive = FALSE)
+  testthat::expect_true(nrow(result4$data_resolve) == 0)
+  testthat::expect_true(nrow(result4$classification) == 0)
+  testthat::expect_identical(result4$id, NA_character_)
 })
