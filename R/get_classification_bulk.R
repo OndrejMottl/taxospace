@@ -2,18 +2,27 @@
 #' @description
 #' This function takes a vector of taxa names and returns the classification
 #' for each of them using the specified database. The default is to use the
-#'  GBIF database, but it can be changed to ITIS with the "sel_db"
+#'  GBIF database, but it can be changed to ITIS with the "sel_db_class"
 #' parameter.
 #' @param taxa_vec A character vector of taxa names to classify.
-#' @param sel_db A string indicating which database to use. Default is "gbif".
+#' @param sel_db_name A string indicating which database to use to
+#' resolve names. Default is "gnr".
+#' @param sel_db_class A string indicating which database to use for
+#' classification. Default is "gbif".
 #' @param verbose
 #' Logical. If TRUE the additional messages are printed on the console.
 #' @return A data frame with classification information for each taxa name.
 #' @export
 #' @examples
 #' get_classification_buk(c("Homo sapiens", "Panthera tigris"))
-get_classification_buk <- function(taxa_vec, sel_db = c("gbif", "itis"), verbose = FALSE) {
-  sel_db <- match.arg(sel_db)
+#' @seealso [get_classification], [taxize::resolve], [taxize::classification]
+get_classification_buk <- function(
+    taxa_vec,
+    sel_db_name = c("gnr", "iplant"),
+    sel_db_class = c("gbif", "itis"),
+    verbose = FALSE) {
+  sel_db_name <- match.arg(sel_db_name)
+  sel_db_class <- match.arg(sel_db_class)
 
   # prealocate space
   data_taxa_res <-
@@ -23,7 +32,10 @@ get_classification_buk <- function(taxa_vec, sel_db = c("gbif", "itis"), verbose
 
   # resolve taxa
   data_resolve <-
-    taxize::resolve(data_taxa_res$sel_name) %>%
+    taxize::resolve(
+      sci = data_taxa_res$sel_name,
+      db = sel_db_name
+    ) %>%
     purrr::pluck(1)
 
   if (
@@ -101,7 +113,8 @@ get_classification_buk <- function(taxa_vec, sel_db = c("gbif", "itis"), verbose
     data_taxa_mached_name_id_full %>%
     dplyr::select(
       matched_name,
-      id = usagekey)
+      id = usagekey
+    )
 
   # get the most matching ID
   data_id <-
@@ -153,7 +166,7 @@ get_classification_buk <- function(taxa_vec, sel_db = c("gbif", "itis"), verbose
   data_classification <-
     taxize::classification(
       sci_id = data_taxa_res$id,
-      db = sel_db
+      db = sel_db_class
     )
 
   names(data_classification) <-

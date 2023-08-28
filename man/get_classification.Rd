@@ -4,10 +4,18 @@
 \alias{get_classification}
 \title{Get classification for a taxonomic name}
 \usage{
-get_classification(taxon, interactive = TRUE, verbose = FALSE)
+get_classification(
+  taxon,
+  sel_db_name = c("gnr", "iplant"),
+  interactive = TRUE,
+  verbose = FALSE
+)
 }
 \arguments{
 \item{taxon}{A character with a taxonomic name}
+
+\item{sel_db_name}{A string indicating which database to use to
+resolve names. Default is "gnr".}
 
 \item{interactive}{A logical value indicating whether to ask the user for
 input or automaticaly pick the best match found in the database}
@@ -37,5 +45,7 @@ an empty list is returned.
 get_classification("Homo sapiens")
 get_classification(c("Canis lupus", "Felis catus"))
 get_classification("Pikachu")
-
+}
+\seealso{
+\link{get_classification_buk}, \link[taxize:resolve]{taxize::resolve}, \link[taxize:classification]{taxize::classification}
 }
