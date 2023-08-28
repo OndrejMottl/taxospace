@@ -27,7 +27,7 @@
 #' get_classification("Homo sapiens")
 #' get_classification(c("Canis lupus", "Felis catus"))
 #' get_classification("Pikachu")
-#' @seealso 
+#' @seealso
 #' [get_classification_buk], [taxize::resolve], [taxize::classification]
 get_classification <- function(
     taxon,
@@ -174,7 +174,16 @@ get_classification <- function(
     data_taxon_mached_name_id_full <-
       taxon_mached_name_id_check %>%
       purrr::map(
-        .f = ~ dplyr::slice(.x, 1)
+        .f = ~ {
+          if (
+            "ACCEPTED" %in% .x$status
+          ) {
+            dplyr::filter(.x, status == "ACCEPTED") %>%
+              dplyr::slice(1)
+          } else {
+            dplyr::slice(.x, 1)
+          }
+        }
       ) %>%
       dplyr::bind_rows(
         .id = "matched_name"
