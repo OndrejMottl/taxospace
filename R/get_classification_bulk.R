@@ -103,7 +103,16 @@ get_classification_buk <- function(
   data_taxa_mached_name_id_full <-
     taxa_mached_name_id_check %>%
     purrr::map(
-      .f = ~ dplyr::slice(.x, 1)
+      .f = ~ {
+        if (
+          "ACCEPTED" %in% .x$status
+        ) {
+          dplyr::filter(.x, status == "ACCEPTED") %>%
+            dplyr::slice(1)
+        } else {
+          dplyr::slice(.x, 1)
+        }
+      }
     ) %>%
     dplyr::bind_rows(
       .id = "matched_name"
