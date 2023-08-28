@@ -3,6 +3,7 @@
 export("%>%")
 export(get_classification)
 export(get_classification_buk)
+export(link_taxa)
 importFrom(lifecycle,deprecated)
 importFrom(magrittr,"%>%")
 importFrom(tibble,tibble)
