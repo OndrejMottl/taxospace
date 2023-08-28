@@ -7,6 +7,8 @@
 #' an empty list is returned.
 #'
 #' @param taxon A character with a taxonomic name
+#' @param sel_db_name A string indicating which database to use to
+#' resolve names. Default is "gnr".
 #' @param interactive A logical value indicating whether to ask the user for
 #' input or automaticaly pick the best match found in the database
 #' @param verbose Logical. If TRUE the additional messages are printed on
@@ -20,13 +22,18 @@
 #' \item{id}{The most matching ID of the taxonomic name in the database}
 #' \item{classification}{A data.frame with the classification of the taxonomic
 #' name, including the name, rank, and ID}
+#' @export
 #' @examples
 #' get_classification("Homo sapiens")
 #' get_classification(c("Canis lupus", "Felis catus"))
 #' get_classification("Pikachu")
-#'
-#' @export
-get_classification <- function(taxon, interactive = TRUE, verbose = FALSE) {
+#' @seealso 
+#' [get_classification_buk], [taxize::resolve], [taxize::classification]
+get_classification <- function(
+    taxon,
+    sel_db_name = c("gnr", "iplant"),
+    interactive = TRUE,
+    verbose = FALSE) {
   # prealocate space
   list_sel_taxon <-
     list(
@@ -49,13 +56,18 @@ get_classification <- function(taxon, interactive = TRUE, verbose = FALSE) {
         tidyr::drop_na()
     )
 
+  sel_db_name <- match.arg(sel_db_name)
+
   # add taxon name
   list_sel_taxon$sel_name <-
     taxon
 
   # resolve taxon
   data_taxon_resolve <-
-    taxize::resolve(list_sel_taxon$sel_name) %>%
+    taxize::resolve(
+      sci = list_sel_taxon$sel_name,
+      db = sel_db_name
+    ) %>%
     purrr::pluck(1)
 
   if (
