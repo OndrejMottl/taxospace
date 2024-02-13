@@ -9,6 +9,8 @@
 #' resolve names. Default is "gnr".
 #' @param sel_db_class A string indicating which database to use for
 #' classification. Default is "gbif".
+#' @param use_cache Logical. If TRUE the intermediate results are cached.
+#' This speeds up the process drastically for large vectors. Default is TRUE.
 #' @param verbose
 #' Logical. If TRUE the additional messages are printed on the console.
 #' @return A data frame with classification information for each taxa name.
@@ -16,19 +18,17 @@
 #' @examples
 #' get_classification_buk(c("Homo sapiens", "Panthera tigris"))
 #' @seealso [get_classification], [taxize::resolve], [taxize::classification]
-get_classification_buk <- function(
-    taxa_vec,
-    sel_db_name = c("gnr", "iplant"),
-    sel_db_class = c("gbif", "itis"),
-    verbose = FALSE) {
+get_classification_buk <- function(taxa_vec,
+                                   sel_db_name = c("gnr", "iplant"),
+                                   sel_db_class = c("gbif", "itis"),
+                                   use_cache = TRUE,
+                                   verbose = FALSE) {
   sel_db_name <- match.arg(sel_db_name)
   sel_db_class <- match.arg(sel_db_class)
 
-  # prealocate space
+  # Preallocate space
   data_taxa_res <-
-    data.frame(
-      sel_name = taxa_vec
-    )
+    data.frame(sel_name = taxa_vec)
 
   # resolve taxa
   data_resolve <-
@@ -44,24 +44,16 @@ get_classification_buk <- function(
     return(data_taxa_res)
   }
 
-  # select the resolve with heighest score
+  # Select the best resolve
   data_resolve_best <-
-    data_resolve %>%
-    dplyr::group_by(
-      dplyr::across("user_supplied_name")
-    ) %>%
-    # get the best match
-    dplyr::filter(
-      get("score") == max(get("score"))
-    ) %>%
-    dplyr::ungroup()
+    select_best_resolve(data_resolve)
 
-  # nest ataxa with their resolve
+  # Nest taxa with their resolve
   data_taxa_res <-
     dplyr::left_join(
       data_taxa_res,
       data_resolve_best,
-      by = dplyr::join_by("sel_name" == "user_supplied_name")
+      by = c("sel_name" = "user_supplied_name")
     ) %>%
     tidyr::nest(
       data_resolve = dplyr::any_of(names(data_resolve))
@@ -73,97 +65,117 @@ get_classification_buk <- function(
     return(data_taxa_res)
   }
 
-  # get vector of unique resolved names
+  # Get vector of unique resolved names
   data_resolve_unique <-
     data_taxa_res %>%
     tidyr::unnest(data_resolve) %>%
     dplyr::distinct(matched_name) %>%
     tidyr::drop_na(matched_name) %>%
-    purrr::chuck("matched_name")
+    purrr::pluck("matched_name")
 
-  # get id
-  suppressWarnings(
-    taxa_mached_name_id_check <-
-      data_resolve_unique %>%
-      taxize::get_gbifid_(
-        messages = verbose
-      )
-  )
-
-  # If there is nothing, return empty
   if (
-    all(is.na(taxa_mached_name_id_check))
+    isTRUE(use_cache)
   ) {
-    base::message("data does not find")
+    data_resolve_unique_present <-
+      get_cached_resolved_names()
 
-    return(data_taxa_res)
+    data_resolve_lookup <-
+      tibble::tibble(
+        name_resolve = data_resolve_unique
+      ) %>%
+      dplyr::mutate(
+        name_clean = janitor::make_clean_names(name_resolve, allow_dupes = TRUE)
+      )
+
+    # Read the cache
+    data_taxa_matched_name_id_loaded <-
+      # only load the present data
+      data_resolve_lookup %>%
+      purrr::chuck("name_clean") %>%
+      load_cached_resolved_names(.) %>%
+      dplyr::left_join(
+        data_resolve_lookup,
+        by = c("name_clean")
+      ) %>%
+      dplyr::relocate(name_resolve) %>%
+      dplyr::rename(matched_name = name_resolve)
+
+    data_resolve_to_run <-
+      data.frame(
+        name_resolve = data_resolve_unique
+      ) %>%
+      dplyr::left_join(
+        data_resolve_lookup,
+        by = c("name_resolve")
+      ) %>%
+      dplyr::filter(
+        !name_clean %in% data_resolve_unique_present
+      ) %>%
+      purrr::chuck("name_resolve")
+
+    if (
+      length(data_resolve_to_run) > 0
+    ) {
+      # Get ID
+      suppressWarnings({
+        taxa_matched_name_id_check <-
+          data_resolve_to_run %>%
+          taxize::get_gbifid_(messages = verbose)
+      })
+
+      data_taxa_matched_name_id_accepted <-
+        taxa_matched_name_id_check %>%
+        purrr::map(.f = ~ get_accepted_row(.x))
+
+      # Cache the results
+      cache_resolved_names(data_taxa_matched_name_id_accepted)
+    } else {
+      data_taxa_matched_name_id_accepted <- tibble::tibble()
+    }
+
+    data_taxa_matched_name_id_full <-
+      dplyr::bind_rows(
+        data_taxa_matched_name_id_accepted,
+        .id = "matched_name"
+      ) %>%
+      dplyr::bind_rows(data_taxa_matched_name_id_loaded)
+  } else {
+    # Get ID
+    suppressWarnings({
+      taxa_matched_name_id_check <-
+        data_resolve_unique %>%
+        taxize::get_gbifid_(messages = verbose)
+    })
+
+    if (
+      all(is.na(taxa_matched_name_id_check))
+    ) {
+      base::message("Data does not find")
+      return(data_taxa_res)
+    }
+
+    data_taxa_matched_name_id_accepted <-
+      taxa_matched_name_id_check %>%
+      purrr::map(.f = ~ get_accepted_row(.x))
+
+    data_taxa_matched_name_id_full <-
+      dplyr::bind_rows(
+        data_taxa_matched_name_id_accepted,
+        .id = "matched_name"
+      )
   }
 
-  # turn it into a data frame
-  data_taxa_mached_name_id_full <-
-    taxa_mached_name_id_check %>%
-    purrr::map(
-      .f = ~ {
-        if (
-          "ACCEPTED" %in% .x$status
-        ) {
-          dplyr::filter(.x, status == "ACCEPTED") %>%
-            dplyr::slice(1)
-        } else {
-          dplyr::slice(.x, 1)
-        }
-      }
-    ) %>%
-    dplyr::bind_rows(
-      .id = "matched_name"
-    )
-
-  data_taxa_mached_name_id <-
-    data_taxa_mached_name_id_full %>%
+  data_taxa_matched_name_id <-
+    data_taxa_matched_name_id_full %>%
     dplyr::select(
       matched_name,
       id = usagekey
     )
 
-  # get the most matching ID
+  # Get the most matching ID
   data_id <-
-    data_taxa_res %>%
-    tidyr::unnest(data_resolve) %>%
-    dplyr::select(sel_name, matched_name) %>%
-    dplyr::distinct() %>%
-    dplyr::left_join(
-      .,
-      data_taxa_mached_name_id,
-      by = "matched_name"
-    ) %>%
-    dplyr::group_by(
-      dplyr::across(
-        c("sel_name", "id")
-      )
-    ) %>%
-    dplyr::summarise(
-      .groups = "drop",
-      Freq = dplyr::n()
-    ) %>%
-    tidyr::drop_na() %>%
-    dplyr::arrange(
-      dplyr::desc(
-        dplyr::pick("Freq")
-      )
-    ) %>%
-    dplyr::group_by(
-      dplyr::across("sel_name")
-    ) %>%
-    dplyr::filter(
-      get("Freq") == max(get("Freq"))
-    ) %>%
-    dplyr::mutate(
-      "id" = as.character(get("id"))
-    ) %>%
-    dplyr::ungroup() %>%
-    dplyr::select(!dplyr::any_of("Freq"))
+    get_most_matching_id(data_taxa_res, data_taxa_matched_name_id)
 
-  # save the most matching ID
   data_taxa_res <-
     data_taxa_res %>%
     dplyr::left_join(
