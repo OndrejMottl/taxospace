@@ -8,6 +8,7 @@ get_classification_buk(
   taxa_vec,
   sel_db_name = c("gnr", "iplant"),
   sel_db_class = c("gbif", "itis"),
+  use_cache = TRUE,
   verbose = FALSE
 )
 }
@@ -19,6 +20,9 @@ resolve names. Default is "gnr".}
 
 \item{sel_db_class}{A string indicating which database to use for
 classification. Default is "gbif".}
+
+\item{use_cache}{Logical. If TRUE the intermediate results are cached.
+This speeds up the process drastically for large vectors. Default is TRUE.}
 
 \item{verbose}{Logical. If TRUE the additional messages are printed on the console.}
 }
