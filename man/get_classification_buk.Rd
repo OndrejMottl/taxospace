@@ -8,7 +8,7 @@ get_classification_buk(
   taxa_vec,
   sel_db_name = c("gnr", "iplant"),
   sel_db_class = c("gbif", "itis"),
-  use_cache = TRUE,
+  use_cache = interactive(),
   verbose = FALSE
 )
 }

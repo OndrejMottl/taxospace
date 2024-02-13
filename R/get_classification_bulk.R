@@ -21,7 +21,7 @@
 get_classification_buk <- function(taxa_vec,
                                    sel_db_name = c("gnr", "iplant"),
                                    sel_db_class = c("gbif", "itis"),
-                                   use_cache = TRUE,
+                                   use_cache = interactive(),
                                    verbose = FALSE) {
   sel_db_name <- match.arg(sel_db_name)
   sel_db_class <- match.arg(sel_db_class)
