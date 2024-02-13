@@ -25,7 +25,7 @@ cache_resolved_names <- function(data_vec) {
     msg = "All elements of data_vec must be data frames."
   )
 
-  dir.create(file.path(tempdir(), "taxospace"), showWarnings = FALSE)
+  dir.create(file.path(tempdir(), "taxospace/resolved/"), showWarnings = FALSE)
 
   data_vec %>%
     purrr::iwalk(
@@ -33,7 +33,7 @@ cache_resolved_names <- function(data_vec) {
         x = .x,
         file = paste0(
           tempdir(),
-          "/taxospace/",
+          "/taxospace/resolved/",
           janitor::make_clean_names(.y),
           ".txt"
         )

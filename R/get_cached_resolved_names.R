@@ -5,7 +5,7 @@
 get_cached_resolved_names <- function() {
   list.files(
     paste0(
-      tempdir(), "/taxospace/"
+      tempdir(), "/taxospace/resolved/"
     ),
     pattern = ".txt"
   ) %>%
