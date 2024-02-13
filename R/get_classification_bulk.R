@@ -30,7 +30,10 @@ get_classification_buk <- function(taxa_vec,
   data_taxa_res <-
     data.frame(sel_name = taxa_vec)
 
-  # resolve taxa
+  #----------------------------------------------------------#
+  # 1. resolve taxa -----
+  #----------------------------------------------------------#
+
   data_resolve <-
     taxize::resolve(
       sci = data_taxa_res$sel_name,
@@ -73,11 +76,20 @@ get_classification_buk <- function(taxa_vec,
     tidyr::drop_na(matched_name) %>%
     purrr::pluck("matched_name")
 
+  #--------------------------------------------------#
+  # 1.1 resolve - ID -----
+  #--------------------------------------------------#
+
   if (
     isTRUE(use_cache)
   ) {
+    # preallocate space
+    data_resolve_unique_present <- character()
+    data_taxa_matched_name_id_loaded <- tibble::tibble()
+    data_taxa_matched_name_id_accepted <- tibble::tibble()
+
     data_resolve_unique_present <-
-      get_cached_resolved_names()
+      get_cached_file_names(sel_dir = "resolve")
 
     data_resolve_lookup <-
       tibble::tibble(
@@ -87,18 +99,22 @@ get_classification_buk <- function(taxa_vec,
         name_clean = janitor::make_clean_names(name_resolve, allow_dupes = TRUE)
       )
 
-    # Read the cache
-    data_taxa_matched_name_id_loaded <-
-      # only load the present data
-      data_resolve_lookup %>%
-      purrr::chuck("name_clean") %>%
-      load_cached_resolved_names(.) %>%
-      dplyr::left_join(
-        data_resolve_lookup,
-        by = c("name_clean")
-      ) %>%
-      dplyr::relocate(name_resolve) %>%
-      dplyr::rename(matched_name = name_resolve)
+    if (
+      length(data_resolve_unique_present) > 0
+    ) {
+      # Read the cache
+      data_taxa_matched_name_id_loaded <-
+        # only load the present data
+        data_resolve_lookup %>%
+        purrr::chuck("name_clean") %>%
+        load_cached_resolved_names(.) %>%
+        dplyr::left_join(
+          data_resolve_lookup,
+          by = c("name_clean")
+        ) %>%
+        dplyr::relocate(name_resolve) %>%
+        dplyr::rename(matched_name = name_resolve)
+    }
 
     data_resolve_to_run <-
       data.frame(
@@ -128,9 +144,11 @@ get_classification_buk <- function(taxa_vec,
         purrr::map(.f = ~ get_accepted_row(.x))
 
       # Cache the results
-      cache_resolved_names(data_taxa_matched_name_id_accepted)
-    } else {
-      data_taxa_matched_name_id_accepted <- tibble::tibble()
+      cache_dataframe(
+        data_vec = data_taxa_matched_name_id_accepted,
+        sel_dir = "resolve",
+        clean_name = TRUE
+      )
     }
 
     data_taxa_matched_name_id_full <-
@@ -176,22 +194,73 @@ get_classification_buk <- function(taxa_vec,
   data_id <-
     get_most_matching_id(data_taxa_res, data_taxa_matched_name_id)
 
-  data_taxa_res <-
-    data_taxa_res %>%
-    dplyr::left_join(
-      data_id,
-      by = dplyr::join_by("sel_name")
-    )
 
-  # get_classification
-  data_classification <-
-    taxize::classification(
-      sci_id = data_taxa_res$id,
-      db = sel_db_class
-    )
+  #----------------------------------------------------------#
+  # 2. Classification -----
+  #----------------------------------------------------------#
 
-  names(data_classification) <-
-    ifelse(is.na(data_taxa_res$id), "NA", data_taxa_res$id)
+  if (
+    isTRUE(use_cache)
+  ) {
+    # preallocate space
+    data_classification <- list()
+    data_classification_loaded <- list()
+    data_classification_present <- character()
+
+    id_unique <- unique(data_id$id)
+
+    data_classification_present <-
+      get_cached_file_names(sel_dir = "classification")
+
+    if (
+      length(data_classification_present) > 0
+    ) {
+      data_classification_to_load <-
+        data_classification_present[data_classification_present %in% id_unique]
+
+      data_classification_loaded <-
+        load_cached_classification(data_classification_to_load)
+    }
+
+    id_to_run <-
+      id_unique[!id_unique %in% data_classification_present]
+
+    if (
+      length(id_to_run) > 0
+    ) {
+      data_classification <-
+        taxize::classification(
+          sci_id = id_to_run,
+          db = sel_db_class
+        )
+
+      names(data_classification) <-
+        ifelse(is.na(id_to_run), "NA_character_", id_to_run)
+
+      # Cache the results
+      cache_dataframe(
+        data_vec = data_classification,
+        sel_dir = "classification",
+        clean_name = FALSE
+      )
+    }
+
+    data_classification <-
+      c(
+        data_classification_loaded,
+        data_classification
+      )
+  } else {
+    # get_classification
+    data_classification <-
+      taxize::classification(
+        sci_id = data_id$id,
+        db = sel_db_class
+      )
+
+    names(data_classification) <-
+      ifelse(is.na(data_id$id), "NA", data_id$id)
+  }
 
   data_classification_res <-
     data_classification %>%
@@ -215,8 +284,12 @@ get_classification_buk <- function(taxa_vec,
 
   # process the classification
   data_taxa_res <-
+    data_taxa_res %>%
     dplyr::left_join(
-      data_taxa_res,
+      data_id,
+      by = dplyr::join_by("sel_name")
+    ) %>%
+    dplyr::left_join(
       data_classification_res,
       by = dplyr::join_by("id" == "taxon_id")
     )
