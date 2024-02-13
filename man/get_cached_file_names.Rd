@@ -6,6 +6,9 @@
 \usage{
 get_cached_file_names(sel_dir)
 }
+\arguments{
+\item{sel_dir}{A string indicating the directory to search for cached files.}
+}
 \value{
 A character vector containing the names of the cached files.
 }
