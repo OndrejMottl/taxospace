@@ -41,8 +41,6 @@ load_cached_resolved_names <- function(data_vector) {
           specieskey = readr::col_integer(),
           synonym = readr::col_logical(),
           class = readr::col_character(),
-          note = readr::col_character(),
-          acceptedusagekey = readr::col_integer()
         ), show_col_types = FALSE
       )
     ) %>%

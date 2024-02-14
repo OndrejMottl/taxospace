@@ -25,9 +25,7 @@ testthat::test_that("load_cached_resolved_names loads data correctly", {
       genuskey = 1:3,
       specieskey = 1:3,
       synonym = c(TRUE, FALSE, TRUE),
-      class = c("class1", "class2", "class3"),
-      note = c("note1", "note2", "note3"),
-      acceptedusagekey = 1:3
+      class = c("class1", "class2", "class3")
     )
 
   dummy_list <-
@@ -50,11 +48,18 @@ testthat::test_that("load_cached_resolved_names loads data correctly", {
     "canonicalname",
     "confidence", "kingdom", "phylum", "order", "family", "genus", "species",
     "kingdomkey", "phylumkey", "classkey", "orderkey", "familykey", "genuskey",
-    "specieskey", "synonym", "class", "note", "acceptedusagekey"
+    "specieskey", "synonym", "class"
   )
 
   testthat::expect_equal(colnames(result), expected_cols)
 
   # Clean up the temporary directory
-  unlink(paste0(tempdir(), "/resolve"), recursive = TRUE, force = TRUE)
+  unlink(
+    paste0(
+      tempdir(),
+      "/taxospace/resolve"
+    ),
+    recursive = TRUE,
+    force = TRUE
+  )
 })

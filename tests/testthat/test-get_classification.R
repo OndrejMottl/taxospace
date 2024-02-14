@@ -42,3 +42,41 @@ testthat::test_that(" returns correct columns", {
 testthat::test_that(" returns correct number of rows", {
   testthat::expect_equal(nrow(result_both), 2)
 })
+
+# Test that function uses cache when use_cache = TRUE
+testthat::test_that("uses cache when use_cache = TRUE", {
+  result_cache <-
+    get_classification(c("Homo sapiens"), use_cache = TRUE)
+
+  cached_resolved <-
+    get_cached_file_names(sel_dir = "resolve")
+
+  cached_resolved_expected <-
+    c(
+      "homo_sapiens", "homo_sapiens_erxleben_1777", "homo_sapiens_linnaeus",
+      "homo_sapiens_linnaeus_1758", "homo_sapiens_subsp_denisova"
+    )
+
+  testthat::expect_contains(
+    cached_resolved, cached_resolved_expected
+  )
+
+  cached_clasification <-
+    get_cached_file_names(sel_dir = "classification")
+
+  testthat::expect_equal(
+    cached_clasification, "2436436"
+  )
+
+  result_cache_again <-
+    get_classification(c("Homo sapiens"), use_cache = TRUE)
+
+  testthat::expect_identical(result_cache, result_cache_again)
+
+  # Clean up
+  unlink(
+    file.path(tempdir(), "taxospace"),
+    recursive = TRUE,
+    force = TRUE
+  )
+})
