@@ -94,7 +94,8 @@ get_classification <- function(taxa_vec,
     data_taxa_matched_name_id_accepted <- tibble::tibble()
 
     data_resolve_unique_present <-
-      get_cached_file_names(sel_dir = "resolve")
+      get_cached_file_names(sel_dir = "resolve") %>%
+      unique()
 
     data_resolve_lookup <-
       tibble::tibble(
@@ -107,18 +108,28 @@ get_classification <- function(taxa_vec,
     if (
       length(data_resolve_unique_present) > 0
     ) {
-      # Read the cache
-      data_taxa_matched_name_id_loaded <-
-        # only load the present data
+      # only load the present data
+      data_to_load <-
         data_resolve_lookup %>%
-        purrr::chuck("name_clean") %>%
-        load_cached_resolved_names() %>%
-        dplyr::left_join(
-          data_resolve_lookup,
-          by = c("name_clean")
+        dplyr::filter(
+          .data$name_clean %in% data_resolve_unique_present
         ) %>%
-        dplyr::relocate(.data$name_resolve) %>%
-        dplyr::rename(matched_name = .data$name_resolve)
+        purrr::chuck("name_clean") %>%
+        unique()
+
+      if (
+        length(data_to_load) > 0
+      ) {
+        # Read the cache
+        data_taxa_matched_name_id_loaded <-
+          load_cached_resolved_names(data_to_load) %>%
+          dplyr::left_join(
+            data_resolve_lookup,
+            by = c("name_clean")
+          ) %>%
+          dplyr::relocate("name_resolve") %>%
+          dplyr::rename(matched_name = "name_resolve")
+      }
     }
 
     data_resolve_to_run <-
