@@ -14,7 +14,7 @@ load_cached_resolved_names <- function(data_vector) {
       .f = ~ readr::read_tsv(
         file = paste0(
           tempdir(),
-          "/taxospace/resolved/",
+          "/taxospace/resolve/",
           .x,
           ".txt"
         ),
