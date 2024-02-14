@@ -9,16 +9,22 @@
 #' is not present
 #' @importFrom rlang .data
 get_accepted_row <- function(data_source) {
+  res <-
+    data_source %>%
+    dplyr::slice(1)
+
   if (
     "status" %in% names(data_source)
   ) {
-    data_source %>%
-      dplyr::filter(.data$status == "ACCEPTED") %>%
-      dplyr::slice(1) %>%
-      return()
-  } else {
-    data_source %>%
-      dplyr::slice(1) %>%
-      return()
+    if (
+      "ACCEPTED" %in% unique(data_source$status)
+    ) {
+      res <-
+        data_source %>%
+        dplyr::filter(.data$status == "ACCEPTED") %>%
+        dplyr::slice(1)
+    }
   }
+
+  return(res)
 }
