@@ -27,9 +27,8 @@ Get the individuial classification for taxons and then find
 the most releated common classification level.
 }
 \examples{
-
 link_taxa(taxon_a = "Homo sapiens", taxon_b = "Homo denisova")
-link_taxa("Canis lupus", "Felis catus", interactive = FALSE)
+link_taxa("Canis lupus", "Felis catus")
 }
 \seealso{
 \link{get_classification}

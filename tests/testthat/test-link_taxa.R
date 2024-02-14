@@ -17,7 +17,7 @@ testthat::test_that("link_taxa returns correct number of rows", {
 testthat::test_that("link_taxa return correct common class", {
   testthat::expect_equal(example1$highest_common_level, "genus")
   testthat::expect_equal(example1$highest_common_level_name, "Homo")
-  testthat::expect_equal(example1$highest_common_level_id, "2436435")
+  testthat::expect_equal(example1$highest_common_level_id, 2436435)
 })
 
 # test that link_taxa only works if both taxa can be classified
