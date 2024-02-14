@@ -1,12 +1,12 @@
 # Test when 'status' column exists
 testthat::test_that("returns the first row with status 'ACCEPTED'", {
   # Create a sample data frame
-  data <-
+  data_test <-
     data.frame(
       status = c("REJECTED", "ACCEPTED", "PENDING"),
       value = c(1, 2, 3)
     )
-  result <- get_accepted_row(data)
+  result <- get_accepted_row(data_test)
 
   testthat::expect_equal(result, data.frame(status = "ACCEPTED", value = 2))
 })
