@@ -9,6 +9,7 @@
 #' @param data_taxa_mached_name_id
 #' A data frame containing the column \code{matched_name}.
 #' @return A modified data frame with the most matching ID.
+#' @importFrom rlang .data
 get_most_matching_id <- function(
     data_with_nested_resolve, data_taxa_mached_name_id) {
   assertthat::assert_that(
@@ -32,11 +33,10 @@ get_most_matching_id <- function(
   )
 
   data_with_nested_resolve %>%
-    tidyr::unnest(data_resolve) %>%
-    dplyr::select(sel_name, matched_name) %>%
+    tidyr::unnest("data_resolve") %>%
+    dplyr::select("sel_name", "matched_name") %>%
     dplyr::distinct() %>%
     dplyr::left_join(
-      .,
       data_taxa_mached_name_id,
       by = "matched_name"
     ) %>%

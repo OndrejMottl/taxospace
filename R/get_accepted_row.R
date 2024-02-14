@@ -7,12 +7,13 @@
 #' @return
 #' The first row with status "ACCEPTED" or the first row if "status" column
 #' is not present
+#' @importFrom rlang .data
 get_accepted_row <- function(data_source) {
   if (
     "status" %in% names(data_source)
   ) {
     data_source %>%
-      dplyr::filter(status == "ACCEPTED") %>%
+      dplyr::filter(.data$status == "ACCEPTED") %>%
       dplyr::slice(1) %>%
       return()
   } else {
