@@ -15,13 +15,13 @@ cache_dataframe <- function(data_vec, sel_dir, clean_name = FALSE) {
   )
 
   assertthat::assert_that(
-    names(data_vec) %>% length() > 0,
-    msg = "data_vec must be named list"
+    length(data_vec) > 0,
+    msg = "data_vec must have at least one element."
   )
 
   assertthat::assert_that(
-    length(data_vec) > 0,
-    msg = "data_vec must have at least one element."
+    names(data_vec) %>% length() > 0,
+    msg = "data_vec must be named list"
   )
 
   assertthat::assert_that(
