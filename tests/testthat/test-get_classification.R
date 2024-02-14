@@ -1,28 +1,44 @@
-testthat::test_that("get_classification returns the correct classification", {
-  # Test case 1: Test with a full species name
-  result1 <- get_classification("Homo sapiens", interactive = TRUE)
-  testthat::expect_equal(result1$db, "gbif")
-  testthat::expect_equal(result1$id, "2436436")
-  testthat::expect_true(nrow(result1$classification) > 0)
-  testthat::expect_equal(nrow(result1$classification), 7)
+# Test that function returns correct classification for Homo sapiens
+testthat::test_that(" returns correct classification for Homo sapiens", {
+  result_homo <- get_classification(c("Homo sapiens"))
+  testthat::expect_equal(nrow(result_homo$classification[[1]]), 7)
+  testthat::expect_equal(
+    result_homo$classification[[1]]$name[7], "Homo sapiens"
+  )
+})
 
-  # Test case 2: Test with a partial species name
-  result2 <- get_classification("acacia_type", interactive = FALSE)
-  testthat::expect_equal(result2$db, "gbif")
-  testthat::expect_equal(result2$id, "2978223")
-  testthat::expect_true(nrow(result2$classification) > 0)
-  testthat::expect_equal(nrow(result2$classification), 6)
+# Test that function returns correct classification for Betula
+testthat::test_that(" returns correct classification for Betula", {
+  result_betula <- get_classification(c("Betula"))
+  testthat::expect_equal(nrow(result_betula$classification[[1]]), 6)
+  testthat::expect_equal(result_betula$classification[[1]]$name[6], "Betula")
+})
 
-  # Test case 3: Test with a partial species name
-  result3 <- get_classification("Felis Catus", interactive = FALSE)
-  testthat::expect_equal(result3$db, "gbif")
-  testthat::expect_equal(result3$id, "2435022")
-  testthat::expect_true(nrow(result3$classification) > 0)
-  testthat::expect_equal(nrow(result3$classification), 6)
+# Test that function returns NA if taxon is not found
+testthat::test_that(" returns no match if taxon is not found", {
+  result <- get_classification(c("Pikachu"))
+  testthat::expect_true(colnames(result) == "sel_name")
+  testthat::expect_equal(nrow(result), 1)
+})
 
-  # Test case 4: Test with a nonexistent taxonomic name
-  result4 <- get_classification("Pikachu", interactive = FALSE)
-  testthat::expect_true(nrow(result4$data_resolve) == 0)
-  testthat::expect_true(nrow(result4$classification) == 0)
-  testthat::expect_identical(result4$id, NA_character_)
+result_both <- get_classification(c("Homo sapiens", "Betula"))
+
+# Test that function returns a data frame
+testthat::test_that(" returns a data frame", {
+  testthat::expect_s3_class(result_both, "data.frame")
+})
+
+# Test that function returns correct columns
+testthat::test_that(" returns correct columns", {
+  testthat::expect_true(
+    all(
+      c("sel_name", "id", "data_resolve", "classification") %in%
+        colnames(result_both)
+    )
+  )
+})
+
+# Test that function returns correct number of rows
+testthat::test_that(" returns correct number of rows", {
+  testthat::expect_equal(nrow(result_both), 2)
 })

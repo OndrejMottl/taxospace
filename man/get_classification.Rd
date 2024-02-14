@@ -2,43 +2,39 @@
 % Please edit documentation in R/get_classification.R
 \name{get_classification}
 \alias{get_classification}
-\title{Get classification for a taxonomic name}
+\title{Get classification for given vector of taxa}
 \usage{
 get_classification(
-  taxon,
+  taxa_vec,
   sel_db_name = c("gnr", "iplant"),
-  interactive = TRUE,
+  sel_db_class = c("gbif", "itis"),
+  use_cache = FALSE,
   verbose = FALSE
 )
 }
 \arguments{
-\item{taxon}{A character with a taxonomic name}
+\item{taxa_vec}{A character vector of taxa names to classify.}
 
 \item{sel_db_name}{A string indicating which database to use to
 resolve names. Default is "gnr".}
 
-\item{interactive}{A logical value indicating whether to ask the user for
-input or automaticaly pick the best match found in the database}
+\item{sel_db_class}{A string indicating which database to use for
+classification. Default is "gbif".}
 
-\item{verbose}{Logical. If TRUE the additional messages are printed on
-the console}
+\item{use_cache}{Logical. If TRUE the intermediate results are cached.
+This speeds up the process drastically for large vectors. Default is TRUE.}
+
+\item{verbose}{Logical. If TRUE the additional messages are printed on the console.}
 }
 \value{
-A list with the following elements:
-\item{sel_name}{The selected taxonomic name}
-\item{data_resolve}{A data.frame with information about the resolved name,
-including the matched name, data source title, and match score}
-\item{db}{The database from which the classification was retrieved
-(GBIF or ITIS)}
-\item{id}{The most matching ID of the taxonomic name in the database}
-\item{classification}{A data.frame with the classification of the taxonomic
-name, including the name, rank, and ID}
+A data.frame with the classification of the taxonomic
+name, including the name, rank, and ID
 }
 \description{
-This function takes a taxonomic name and returns its classification.
-It retrieves the classification from the Global Biodiversity Information
-Facility (GBIF) and Integrated Taxonomic Information System (ITIS)
-databases. If the name is not found in either database,
+This function takes a vector of taxa names and returns the classification
+for each of them using the specified database. The default is to use the
+GBIF database, but it can be changed to ITIS with the "sel_db_class"
+parameter. If the name is not found in either database,
 an empty list is returned.
 }
 \examples{
@@ -47,5 +43,5 @@ get_classification(c("Canis lupus", "Felis catus"))
 get_classification("Pikachu")
 }
 \seealso{
-\link{get_classification_buk}, \link[taxize:resolve]{taxize::resolve}, \link[taxize:classification]{taxize::classification}
+\link[taxize:resolve]{taxize::resolve}, \link[taxize:classification]{taxize::classification}
 }

@@ -12,35 +12,55 @@
 #' \item{highest_common_level_name}{The name of the highest common classification level}
 #' \item{highest_common_level_id}{The ID of the highest common classification level}
 #' @seealso [get_classification]
-#' @examples 
-#' 
+#' @examples
 #' link_taxa(taxon_a = "Homo sapiens", taxon_b = "Homo denisova")
-#' link_taxa("Canis lupus", "Felis catus", interactive = FALSE)
+#' link_taxa("Canis lupus", "Felis catus")
 #' @export
+#' @importFrom rlang .data
 link_taxa <- function(
     taxon_a,
     taxon_b,
     ...) {
   class_taxa_a <- get_classification(taxon_a, ...)
 
+  try(
+    class_taxa_a_extract <-
+      class_taxa_a %>%
+      dplyr::filter(
+        .data$sel_name == taxon_a
+      ) %>%
+      purrr::pluck("classification", 1),
+    silent = TRUE
+  )
+
   if (
-    nrow(class_taxa_a$classification) < 1
+    nrow(class_taxa_a_extract) < 1
   ) {
     stop("No classification found for taxon_a")
   }
 
   class_taxa_b <- get_classification(taxon_b, ...)
 
+  try(
+    class_taxa_b_extract <-
+      class_taxa_b %>%
+      dplyr::filter(
+        .data$sel_name == taxon_b
+      ) %>%
+      purrr::pluck("classification", 1),
+    silent = TRUE
+  )
+
   if (
-    nrow(class_taxa_b$classification) < 1
+    nrow(class_taxa_b_extract) < 1
   ) {
     stop("No classification found for taxon_b")
   }
 
   data_common_classification <-
     dplyr::inner_join(
-      class_taxa_a$classification,
-      class_taxa_b$classification,
+      class_taxa_a_extract,
+      class_taxa_b_extract,
       by = c("name", "rank", "id")
     )
 
@@ -50,15 +70,15 @@ link_taxa <- function(
 
   return(
     list(
-      taxon_a = class_taxa_a$classification,
-      taxon_b = class_taxa_b$classification,
+      taxon_a = class_taxa_a_extract,
+      taxon_b = class_taxa_b_extract,
       common_classification = data_common_classification,
       highest_common_level = data_highest_common_classification %>%
-        dplyr::pull(rank),
+        purrr::chuck("rank"),
       highest_common_level_name = data_highest_common_classification %>%
-        dplyr::pull(name),
+        purrr::chuck("name"),
       highest_common_level_id = data_highest_common_classification %>%
-        dplyr::pull(id)
+        purrr::chuck("id")
     )
   )
 }
