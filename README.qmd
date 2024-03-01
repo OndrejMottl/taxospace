@@ -1,0 +1,53 @@
+---
+format: 
+  gfm:
+    wrap: none
+---
+
+```{r setup, include=FALSE, echo=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  collapse = TRUE,
+  comment = "#>",
+  fig.path = "man/figures/README-"
+)
+```
+
+# taxospace
+
+<!-- badges: start -->
+[![R-CMD-check](https://github.com/OndrejMottl/taxospace/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/OndrejMottl/taxospace/actions/workflows/R-CMD-check.yaml)
+[![Codecov test coverage](https://codecov.io/gh/OndrejMottl/taxospace/branch/main/graph/badge.svg)](https://app.codecov.io/gh/OndrejMottl/taxospace?branch=main)
+<!-- badges: end -->
+
+The goal of **taxospace** is to to classify any sting of taxa to a taxonomic rank. 
+
+The **taxospace** package uses the {[taxize package](https://docs.ropensci.org/taxize/index.html)} to get the most probable taxa name, which is then aling to the GBIF taxonomy backbone.
+
+## Installation
+
+You can install the development version of taxospace from [GitHub](https://github.com/) with:
+
+```{r eval = FALSE}
+# install.packages("remotes")
+remotes::install_github("OndrejMottl/taxospace")
+```
+
+## Classify taxa
+
+```{r}
+# Attach the package
+library(taxospace)
+
+# get classification of a single taxa
+classification_homo_sapiens <-
+  get_classification("Homo sapiens")
+
+classification_homo_sapiens$classification
+
+# Or a vector with several taxa
+data_classification <-
+  get_classification(c("Betula", "Canis lupus"))
+
+data_classification$classification
+```
