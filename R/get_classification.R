@@ -40,11 +40,19 @@ get_classification <- function(taxa_vec,
   #----------------------------------------------------------#
 
   data_resolve <-
-    taxize::resolve(
-      sci = data_taxa_res$sel_name,
-      db = sel_db_name
+    data_taxa_res %>%
+    purrr::chuck("sel_name") %>%
+    purrr::map(
+      .f = ~ taxize::resolve(
+        sci = .x,
+        db = sel_db_name
+      ) %>%
+        purrr::pluck(1)
     ) %>%
-    purrr::pluck(1)
+    # filter list by only keeping elements that are data.frames 
+    #   to filter out ERRORs
+    purrr::keep(~ is.data.frame(.x)) %>%
+    dplyr::bind_rows()
 
   if (
     nrow(data_resolve) == 0
