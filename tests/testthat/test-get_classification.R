@@ -80,3 +80,14 @@ testthat::test_that("uses cache when use_cache = TRUE", {
     force = TRUE
   )
 })
+
+# Test that function returns exit early in scenario when there is no ID
+testthat::test_that(" returns correct number of rows", {
+  result_angiospermae <-
+    get_classification("Angiospermae")
+
+  testthat::expect_true(
+    is.data.frame(result_angiospermae) &&
+      ncol(result_angiospermae) == 2
+  )
+})

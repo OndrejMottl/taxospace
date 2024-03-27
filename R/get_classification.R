@@ -49,7 +49,7 @@ get_classification <- function(taxa_vec,
       ) %>%
         purrr::pluck(1)
     ) %>%
-    # filter list by only keeping elements that are data.frames 
+    # filter list by only keeping elements that are data.frames
     #   to filter out ERRORs
     purrr::keep(~ is.data.frame(.x)) %>%
     dplyr::bind_rows()
@@ -207,15 +207,24 @@ get_classification <- function(taxa_vec,
       )
   }
 
-  data_taxa_matched_name_id <-
+  data_taxa_matched_name <-
     data_taxa_matched_name_id_full %>%
     dplyr::select(
       "matched_name",
-      "usagekey"
-    ) %>%
-    dplyr::rename(
-      id = "usagekey"
+      dplyr::any_of("usagekey")
     )
+
+  if (
+    "usagekey" %in% names(data_taxa_matched_name)
+  ) {
+    data_taxa_matched_name_id <-
+      data_taxa_matched_name %>%
+      dplyr::rename(
+        id = "usagekey"
+      )
+  } else {
+    return(data_taxa_res)
+  }
 
   # Get the most matching ID
   data_id <-
