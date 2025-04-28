@@ -51,11 +51,8 @@ testthat::test_that("uses cache when use_cache = TRUE", {
   cached_resolved <-
     get_cached_file_names(sel_dir = "resolve")
 
-  cached_resolved_expected <-
-    c(
-      "homo_sapiens", "homo_sapiens_erxleben_1777", "homo_sapiens_linnaeus",
-      "homo_sapiens_linnaeus_1758", "homo_sapiens_subsp_denisova"
-    )
+  cached_resolved_expected <- "homo_sapiens_linnaeus_1758"
+
 
   testthat::expect_contains(
     cached_resolved, cached_resolved_expected

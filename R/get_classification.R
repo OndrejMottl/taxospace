@@ -7,7 +7,8 @@
 #' an empty list is returned.
 #' @param taxa_vec A character vector of taxa names to classify.
 #' @param sel_db_name A string indicating which database to use to
-#' resolve names. Default is "gnr".
+#' resolve names. Default is "gnr". There have been update in Global Names
+#' Resolver API, so the default is to use the new API (Global Names Verifier).
 #' @param sel_db_class A string indicating which database to use for
 #' classification. Default is "gbif".
 #' @param use_cache Logical. If TRUE the intermediate results are cached.
@@ -24,7 +25,7 @@
 #' @importFrom rlang .data
 #' @seealso [taxize::resolve], [taxize::classification]
 get_classification <- function(taxa_vec,
-                               sel_db_name = c("gnr", "iplant"),
+                               sel_db_name = c("gnr"),
                                sel_db_class = c("gbif", "itis"),
                                use_cache = FALSE,
                                verbose = FALSE) {
@@ -43,11 +44,15 @@ get_classification <- function(taxa_vec,
     data_taxa_res %>%
     purrr::chuck("sel_name") %>%
     purrr::map(
-      .f = ~ taxize::resolve(
-        sci = .x,
-        db = sel_db_name
-      ) %>%
-        purrr::pluck(1)
+      .f = purrr::possibly(
+        .f = ~ taxize::gna_verifier(
+          names = .x,
+          all_matches = TRUE,
+          output_type = "table"
+        ),
+        otherwise = NULL,
+        quiet = TRUE
+      )
     ) %>%
     # filter list by only keeping elements that are data.frames
     #   to filter out ERRORs
@@ -69,7 +74,7 @@ get_classification <- function(taxa_vec,
     dplyr::left_join(
       data_taxa_res,
       data_resolve_best,
-      by = c("sel_name" = "user_supplied_name")
+      by = c("sel_name" = "submittedName")
     ) %>%
     tidyr::nest(
       data_resolve = dplyr::any_of(names(data_resolve))
@@ -85,9 +90,9 @@ get_classification <- function(taxa_vec,
   data_resolve_unique <-
     data_taxa_res %>%
     tidyr::unnest("data_resolve") %>%
-    dplyr::distinct(.data$matched_name) %>%
-    tidyr::drop_na("matched_name") %>%
-    purrr::pluck("matched_name")
+    dplyr::distinct(.data$matchedName) %>%
+    tidyr::drop_na("matchedName") %>%
+    purrr::pluck("matchedName")
 
   #--------------------------------------------------#
   # 1.1 resolve - ID -----
