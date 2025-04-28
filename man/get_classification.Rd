@@ -6,7 +6,7 @@
 \usage{
 get_classification(
   taxa_vec,
-  sel_db_name = c("gnr", "iplant"),
+  sel_db_name = c("gnr"),
   sel_db_class = c("gbif", "itis"),
   use_cache = FALSE,
   verbose = FALSE
@@ -16,7 +16,8 @@ get_classification(
 \item{taxa_vec}{A character vector of taxa names to classify.}
 
 \item{sel_db_name}{A string indicating which database to use to
-resolve names. Default is "gnr".}
+resolve names. Default is "gnr". There have been update in Global Names
+Resolver API, so the default is to use the new API (Global Names Verifier).}
 
 \item{sel_db_class}{A string indicating which database to use for
 classification. Default is "gbif".}

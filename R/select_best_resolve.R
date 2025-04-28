@@ -6,10 +6,10 @@
 select_best_resolve <- function(data_resolve) {
   data_resolve %>%
     dplyr::group_by(
-      dplyr::across("user_supplied_name")
+      dplyr::across("submittedName")
     ) %>%
     dplyr::filter(
-      get("score") == max(get("score"))
+      get("sortScore") == max(get("sortScore"))
     ) %>%
     dplyr::ungroup()
 }

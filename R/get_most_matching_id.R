@@ -34,11 +34,13 @@ get_most_matching_id <- function(
 
   data_with_nested_resolve %>%
     tidyr::unnest("data_resolve") %>%
-    dplyr::select("sel_name", "matched_name") %>%
+    dplyr::select("sel_name", "matchedName") %>%
     dplyr::distinct() %>%
     dplyr::left_join(
       data_taxa_mached_name_id,
-      by = "matched_name"
+      by = dplyr::join_by(
+        "matchedName" == "matched_name"
+      )
     ) %>%
     dplyr::group_by(
       dplyr::across(
