@@ -4,10 +4,12 @@
 \alias{get_accepted_row}
 \title{Get the first row with status "ACCEPTED" from a data source}
 \usage{
-get_accepted_row(data_source)
+get_accepted_row(data_source, only_accepted = TRUE)
 }
 \arguments{
 \item{data_source}{The data source to filter}
+
+\item{only_accepted}{Logical indicating whether to filter for "ACCEPTED" status}
 }
 \value{
 The first row with status "ACCEPTED" or the first row if "status" column
