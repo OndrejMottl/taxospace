@@ -8,6 +8,7 @@ get_classification(
   taxa_vec,
   sel_db_name = c("gnr"),
   sel_db_class = c("gbif", "itis"),
+  use_only_exact_match = TRUE,
   use_cache = FALSE,
   verbose = FALSE
 )
@@ -21,6 +22,9 @@ Resolver API, so the default is to use the new API (Global Names Verifier).}
 
 \item{sel_db_class}{A string indicating which database to use for
 classification. Default is "gbif".}
+
+\item{use_only_exact_match}{Logical. If TRUE only the exact match from resolve is used.
+If FALSE, the best match is used based on the confidence. Default is TRUE.}
 
 \item{use_cache}{Logical. If TRUE the intermediate results are cached.
 This speeds up the process drastically for large vectors. Default is TRUE.}
