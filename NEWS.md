@@ -1,3 +1,7 @@
+# taxospace 0.0.9005
+
+* `get_classification()` & `get_accepted_row()`- add new arguments, which allow to always select for the highest confidence regardless of the status
+
 # taxospace 0.0.9004
 
 * Due to changes in the GNR API to GNV, the `get_classification()` function has been updated to use the new API. The `get_classification()` function now accepts only `"gnr"` as `sel_db_name` argument.
